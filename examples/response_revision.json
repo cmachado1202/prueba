@@ -1,0 +1,38 @@
+{
+  "formulario_id": "UIF-000123",
+  "fecha_procesamiento": "2026-09-16T14:30:00.000Z",
+  "cliente": {
+    "nombre_completo": "CLIENTE DE PRUEBA",
+    "tipo_documento": "DNI",
+    "numero_documento": null,
+    "cuit_cuil": "20000000001",
+    "domicilio": "DOMICILIO ANONIMIZADO"
+  },
+  "operacion": {
+    "fecha": "2026-09-15",
+    "ticket": "3",
+    "maquina": "12000021",
+    "importe": 6277500,
+    "moneda": "ARS",
+    "medio_pago": null
+  },
+  "declaraciones": {
+    "pep": false,
+    "certificado_documentacion": false
+  },
+  "reportante": {
+    "nombre": "REPORTANTE ANONIMIZADO"
+  },
+  "control": {
+    "documento_completo": false,
+    "requiere_revision": true,
+    "motivos_revision": [
+      "campo_critico_faltante:cliente.numero_documento"
+    ],
+    "confianza_extraccion": 0.83
+  },
+  "archivo": {
+    "nombre_original": "formulario_uif_prueba.pdf",
+    "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+  }
+}
