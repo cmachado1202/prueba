@@ -1,0 +1,190 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://proyecto.local/schemas/uif-formulario.schema.json",
+  "title": "Formulario UIF procesado",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "formulario_id",
+    "fecha_procesamiento",
+    "cliente",
+    "operacion",
+    "declaraciones",
+    "control",
+    "archivo"
+  ],
+  "properties": {
+    "formulario_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "fecha_procesamiento": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "cliente": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nombre_completo",
+        "tipo_documento",
+        "numero_documento"
+      ],
+      "properties": {
+        "nombre_completo": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tipo_documento": {
+          "type": "string",
+          "enum": [
+            "DNI",
+            "CUIT",
+            "CUIL",
+            "PASAPORTE",
+            "OTRO"
+          ]
+        },
+        "numero_documento": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cuit_cuil": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "domicilio": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "operacion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fecha",
+        "importe"
+      ],
+      "properties": {
+        "fecha": {
+          "type": "string",
+          "format": "date"
+        },
+        "ticket": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "maquina": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "importe": {
+          "type": "number",
+          "minimum": 0
+        },
+        "moneda": {
+          "type": "string",
+          "default": "ARS"
+        },
+        "medio_pago": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "declaraciones": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pep"
+      ],
+      "properties": {
+        "pep": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "certificado_documentacion": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    },
+    "reportante": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "nombre": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "documento_completo",
+        "requiere_revision",
+        "motivos_revision",
+        "confianza_extraccion"
+      ],
+      "properties": {
+        "documento_completo": {
+          "type": "boolean"
+        },
+        "requiere_revision": {
+          "type": "boolean"
+        },
+        "motivos_revision": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "confianza_extraccion": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "archivo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nombre_original",
+        "sha256"
+      ],
+      "properties": {
+        "nombre_original": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        }
+      }
+    }
+  }
+}
