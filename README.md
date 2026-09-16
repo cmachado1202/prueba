@@ -69,14 +69,15 @@ Enviar JSON:
 
 No se incluyen secretos en el repositorio.
 
-Crear las siguientes variables en n8n:
+El workflow usa el header HTTP:
 
-| Variable | Uso |
-|---|---|
-| `NVIDIA_API_KEY` | API key utilizada por el nodo Document AI |
-| `NVIDIA_DOCUMENT_MODEL` | Modelo multimodal. Es opcional; si no existe, el workflow usa `nvidia/nemotron-3.5-lightning-30b-a3b`. |
+```text
+Authorization: Bearer PEGA_AQUI_TU_NVIDIA_API_KEY
+```
 
-La API key nunca debe escribirse en el README, en el workflow exportado ni en capturas públicas.
+Para probarlo en n8n, reemplazar temporalmente el placeholder por una NVIDIA API key válida dentro del nodo `Document AI - NVIDIA`.
+
+Antes de exportar o publicar el workflow, volver a dejar el placeholder. La API key real no debe subirse al repositorio ni aparecer en capturas públicas.
 
 ## Extracción con Document AI
 
