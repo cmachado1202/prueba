@@ -1,0 +1,9 @@
+*.pdf
+.env
+.env.*
+secrets/
+credentials/
+*.key
+*.pem
+.DS_Store
+Thumbs.db
