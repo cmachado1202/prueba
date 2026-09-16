@@ -23,7 +23,7 @@ Validar archivo
   ↓
 Base64 + SHA-256
   ↓
-Document AI / OpenAI Responses API
+Document AI / NVIDIA API
   ↓
 JSON estructurado
   ↓
@@ -73,14 +73,14 @@ Crear las siguientes variables en n8n:
 
 | Variable | Uso |
 |---|---|
-| `OPENAI_API_KEY` | API key utilizada por el nodo Document AI |
-| `OPENAI_DOCUMENT_MODEL` | Modelo multimodal. Es opcional; si no existe, el workflow usa `gpt-5.6-luna`. |
+| `NVIDIA_API_KEY` | API key utilizada por el nodo Document AI |
+| `NVIDIA_DOCUMENT_MODEL` | Modelo multimodal. Es opcional; si no existe, el workflow usa `nvidia/nemotron-3.5-lightning-30b-a3b`. |
 
 La API key nunca debe escribirse en el README, en el workflow exportado ni en capturas públicas.
 
 ## Extracción con Document AI
 
-El nodo `Document AI - OpenAI` utiliza entrada de archivo PDF/imagen y solicita salida estructurada mediante JSON Schema.
+El nodo `Document AI - NVIDIA` utiliza entrada de archivo PDF/imagen y solicita salida estructurada mediante JSON Schema.
 
 El modelo extrae únicamente:
 
@@ -268,8 +268,8 @@ Las capturas deben provenir de una ejecución real de n8n. No deben fabricarse n
 
 1. Abrir n8n.
 2. Importar `/workflow/uif_document_ai.json`.
-3. Crear las variables `OPENAI_API_KEY` y, opcionalmente, `OPENAI_DOCUMENT_MODEL`.
-4. Abrir el nodo `Document AI - OpenAI` y verificar la autorización.
+3. Crear las variables `NVIDIA_API_KEY` y, opcionalmente, `NVIDIA_DOCUMENT_MODEL`.
+4. Abrir el nodo `Document AI - NVIDIA` y verificar la autorización.
 5. Ejecutar el Webhook en modo de prueba.
 6. Enviar un PDF real.
 7. Confirmar que el flujo finalice en `Responder OK` o `Responder revisión`.
