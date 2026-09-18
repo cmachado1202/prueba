@@ -18,6 +18,16 @@ Restablecer el servicio sin permitir que un fallo de IA derive en una decisión 
 | MySQL de observabilidad falla | El nodo no bloquea el caso | Revisar credencial/conectividad; usar historial de ejecución como respaldo |
 | Webhook devuelve 401/403 | Entrada bloqueada | Validar Header Auth del sistema origen |
 
+## Alertas operativas
+
+Toda alerta se persiste primero en `uif_agent_alerts` con estado `OPEN`. Si existe un webhook externo configurado, además se envía al canal operativo. Si no existe, el flujo no falla: Operaciones puede consultar la tabla de alertas pendientes.
+
+Consulta rápida:
+
+```sql
+SELECT * FROM uif_agent_alerts WHERE status = 'OPEN' ORDER BY timestamp DESC;
+```
+
 ## Investigación por transaction_id
 
 1. Buscar el `transaction_id` en `uif_agent_logs`.
