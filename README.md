@@ -1,287 +1,189 @@
-# UIF · Flujo Operativo de Extracción Inteligente
+# UIF · Automatización inteligente Production-Ready
 
-**Proyecto final · Módulo 2**
+**Proyecto Coderhouse · Automatización + Document AI + Agentes de IA**
 
-## Caso de uso
+## Problema de negocio
 
-Este repositorio implementa la evolución técnica del plan de automatización definido en el Módulo 1 para el circuito de Formularios UIF disponible en GST @CashFlow.
+El proyecto automatiza el **relevamiento, extracción y control inicial de Formularios UIF provenientes de GST @CashFlow**.
 
-El objetivo de este checkpoint es construir el **Ingestor de Datos** del proyecto: recibir un PDF o imagen, aplicar extracción documental con IA, normalizar los campos, validar la información crítica y devolver un JSON estructurado apto para controles posteriores.
+El sistema recibe documentos, conserva su trazabilidad mediante SHA-256, extrae datos a una estructura uniforme, ejecuta controles determinísticos y utiliza dos agentes especializados para revisar calidad de datos y decidir el enrutamiento operativo.
 
-El flujo **no determina si una operación es sospechosa, no decide cumplimiento normativo y no reemplaza la revisión de Cumplimiento**. La IA se limita a lectura y estructuración documental.
+> **Límite funcional:** la IA no determina si una operación es sospechosa, no decide cumplimiento normativo y no reemplaza a Cumplimiento. Ante duda o baja confianza, el flujo deriva a revisión humana.
 
-## Arquitectura
+## Evolución por módulos
 
-```text
-Webhook
-  ↓
-Preparar entrada
-  ├─ archivo multipart/form-data
-  └─ pdf_url → descarga
-  ↓
-Validar archivo
-  ↓
-Base64 + SHA-256
-  ↓
-Document AI / NVIDIA API
-  ↓
-JSON estructurado
-  ↓
-Normalización
-  ↓
-Validación de campos críticos
-  ├─ OK
-  └─ Requiere revisión
-```
+- **Módulo 1:** plan de automatización, arquitectura mínima y esquema de datos.
+- **Módulo 2:** ingesta documental + Document AI + normalización + validación.
+- **Checkpoint actual:** capa multiagente, observabilidad, gestión de secretos, sanitización PII, circuit breaker, alertas y fallback.
 
-## Herramienta de orquestación
+## Workflow principal
 
-- **n8n**
-- Workflow exportado: `/workflow/uif_document_ai.json`
+`/workflow/uif_production_ready.json`
 
-## Endpoint
+El workflow anterior del Módulo 2 se conserva en:
 
-### POST `/webhook/uif-ingesta`
+`/workflow/uif_document_ai.json`
 
-El Webhook acepta dos modalidades.
-
-### Opción A · Archivo
-
-Enviar `multipart/form-data` con:
-
-- `archivo`: PDF, JPG o PNG
-- `formulario_id`: opcional
-
-El workflow detecta automáticamente la primera propiedad binaria recibida.
-
-### Opción B · URL
-
-Enviar JSON:
-
-```json
-{
-  "formulario_id": "UIF-000123",
-  "pdf_url": "https://servidor-ejemplo.local/documentos/uif-000123.pdf"
-}
-```
-
-## Configuración de credenciales
-
-No se incluyen secretos en el repositorio.
-
-El workflow usa el header HTTP:
+## Arquitectura de producción
 
 ```text
-Authorization: Bearer PEGA_AQUI_TU_NVIDIA_API_KEY
+GST @CashFlow
+   ↓
+Webhook autenticado
+   ↓
+Validación + SHA-256
+   ↓
+Document AI / NVIDIA
+   ↓
+Normalización determinística
+   ↓
+Data Sanitization
+   ↓
+Agente A · Analista de Integridad
+   ↓
+Gate / Circuit Breaker
+   ├── falla o baja confianza → HUMAN_REVIEW
+   ↓
+Agente B · Revisor / Enrutador
+   ↓
+Control determinístico final
+   ├── AUTO_CONTINUE
+   └── HUMAN_REVIEW
+   ↓
+Logs MySQL + alertas operativas
 ```
 
-Para probarlo en n8n, reemplazar temporalmente el placeholder por una NVIDIA API key válida dentro del nodo `Document AI - NVIDIA`.
+Diagrama detallado: `/docs/architecture.md`.
 
-Antes de exportar o publicar el workflow, volver a dejar el placeholder. La API key real no debe subirse al repositorio ni aparecer en capturas públicas.
+## Agentes
 
-## Extracción con Document AI
+### Agente A · Analista de Integridad
 
-El nodo `Document AI - NVIDIA` utiliza entrada de archivo PDF/imagen y solicita salida estructurada mediante JSON Schema.
+Evalúa completitud e inconsistencias usando solo datos sanitizados. Produce un `quality_score`, issues y un resumen para el handoff.
 
-El modelo extrae únicamente:
+Prompt documentado en `/prompts/agent_analyst.md`.
 
-- número de formulario;
-- datos principales del cliente;
-- fecha, ticket, máquina e importe de la operación;
-- moneda y medio de pago cuando sean inequívocos;
-- condición PEP;
-- requerimiento de certificado/documentación;
-- nombre del reportante.
+### Agente B · Revisor y Enrutador
 
-Cuando un dato no se encuentra o un checkbox no puede determinarse de manera inequívoca, debe devolver `null`.
+Recibe el payload sanitizado + la salida del Agente A. Solo puede decidir:
 
-## Esquema de datos
+- `AUTO_CONTINUE`
+- `HUMAN_REVIEW`
 
-El contrato final se conserva en:
+Prompt documentado en `/prompts/agent_reviewer.md`.
 
-`/schema/uif_formulario.schema.json`
+### Patrón
 
-Estructura principal:
+Se usa **Handoff controlado**. No existe un loop reflexivo infinito: hay como máximo dos llamadas de agentes. Si el Agente A falla o no supera el gate, el Agente B no se invoca.
 
-```json
-{
-  "formulario_id": "string",
-  "fecha_procesamiento": "date-time",
-  "cliente": {
-    "nombre_completo": "string",
-    "tipo_documento": "DNI | CUIT | CUIL | PASAPORTE | OTRO",
-    "numero_documento": "string",
-    "cuit_cuil": "string | null",
-    "domicilio": "string | null"
-  },
-  "operacion": {
-    "fecha": "YYYY-MM-DD",
-    "ticket": "string | null",
-    "maquina": "string | null",
-    "importe": 0,
-    "moneda": "ARS",
-    "medio_pago": "string | null"
-  },
-  "declaraciones": {
-    "pep": "boolean | null",
-    "certificado_documentacion": "boolean | null"
-  },
-  "reportante": {
-    "nombre": "string | null"
-  },
-  "control": {
-    "documento_completo": true,
-    "requiere_revision": false,
-    "motivos_revision": [],
-    "confianza_extraccion": 1
-  },
-  "archivo": {
-    "nombre_original": "string",
-    "sha256": "64 caracteres hexadecimales"
-  }
-}
-```
+## Observabilidad
 
-## Normalización
+Cada ejecución genera un UUID `transaction_id` al inicio.
 
-El nodo `Normalizar y validar` aplica las siguientes reglas:
+La tabla `uif_agent_logs` registra:
 
-- fechas `DD/MM/YYYY` → `YYYY-MM-DD`;
-- importes con `$`, puntos de miles y coma decimal → número;
-- documento → enum normalizado;
-- DNI/CUIT/CUIL → solo dígitos;
-- moneda vacía → `ARS`;
-- cadenas vacías → `null`.
+- `timestamp`
+- `transaction_id`
+- `agent_name`
+- `input_tokens`
+- `output_tokens`
+- `estimated_cost_usd`
+- `latency_ms`
+- `status`
+- decisión/error
+- metadata estructurada sin PII
 
-Ejemplo:
+DDL: `/sql/observability.sql`.
+
+> Las tarifas de tokens se dejan en 0 por defecto para no inventar precios. Antes de producción se cargan las tarifas vigentes del proveedor en el nodo `Sanitizar PII + Trace`; el cálculo ya está implementado.
+
+## Seguridad
+
+### Credenciales
+
+No hay llaves reales en Git. Crear en n8n:
+
+1. **NVIDIA API** · Bearer Auth.
+2. **UIF Webhook Auth** · Header Auth.
+3. **UIF Observability MySQL** · MySQL.
+
+El export del workflow referencia estas credenciales por nombre, pero no incluye sus secretos.
+
+### Sanitización
+
+Antes de cualquier agente se quitan nombre, documento, CUIT/CUIL, domicilio, reportante, importe exacto, ticket, máquina y texto documental. Los logs tampoco incluyen PII.
+
+Ver `/docs/security.md`.
+
+## Setup
+
+1. Ejecutar `/sql/observability.sql` en la base UIF.
+2. Importar `/workflow/uif_production_ready.json` en n8n.
+3. Crear/asignar las tres credenciales indicadas arriba.
+4. En `Sanitizar PII + Trace`, configurar:
+   - precio de input/output por millón de tokens;
+   - umbral de confianza si se desea modificar 0.85;
+   - URL real del canal de alertas.
+5. Publicar el workflow.
+6. Consumir el endpoint `POST /webhook/uif-ingesta` enviando el Header Auth configurado.
+7. Ejecutar prueba controlada y validar telemetría por `transaction_id`.
+
+Variables de referencia: `.env.example`.
+
+## Mecanismos de control
+
+- reintentos limitados en APIs;
+- timeout de Document AI y agentes;
+- contratos JSON estrictos;
+- máximo 2 llamadas de agentes;
+- presupuesto máximo de referencia: USD 0.50 por ejecución;
+- umbral de confianza: 0.85;
+- fallback seguro a `HUMAN_REVIEW`;
+- alerta por fallo de agente, latencia o presupuesto;
+- la IA nunca puede sobreescribir un faltante crítico detectado por reglas.
+
+## Runbook
+
+Ver `/docs/runbook.md`.
+
+## Evidencias
+
+Las capturas deben provenir de una ejecución real y anonimizada. Checklist completo:
+
+`/docs/evidence-checklist.md`
+
+No se suben formularios reales al repositorio.
+
+## Estructura
 
 ```text
-$6.277.500,00 → 6277500.00
-15/09/2026 → 2026-09-15
-D.N.I. → DNI
+.
+├── .env.example
+├── README.md
+├── docs/
+│   ├── architecture.md
+│   ├── evidence-checklist.md
+│   ├── runbook.md
+│   └── security.md
+├── prompts/
+│   ├── agent_analyst.md
+│   └── agent_reviewer.md
+├── schema/
+│   ├── uif_formulario.schema.json
+│   └── uif_agent_log.schema.json
+├── sql/
+│   └── observability.sql
+└── workflow/
+    ├── uif_document_ai.json
+    └── uif_production_ready.json
 ```
 
-## Validación
-
-Se consideran críticos:
-
-- `formulario_id`
-- `cliente.nombre_completo`
-- `cliente.tipo_documento`
-- `cliente.numero_documento`
-- `operacion.fecha`
-- `operacion.importe`
-
-Si alguno falta:
-
-```json
-{
-  "documento_completo": false,
-  "requiere_revision": true,
-  "motivos_revision": [
-    "campo_critico_faltante:cliente.numero_documento"
-  ]
-}
-```
-
-La confianza del checkpoint se calcula como proporción de campos críticos presentes. No representa una decisión de cumplimiento.
-
-## Resiliencia y manejo de errores
-
-El workflow contempla:
-
-1. **Entrada inválida**  
-   No se recibió archivo ni URL → HTTP 400.
-
-2. **Documento vacío/corrupto**  
-   Se comprueba tamaño, tipo MIME y firma binaria de PDF/JPG/PNG → HTTP 400.
-
-3. **Error en Document AI**  
-   El nodo HTTP continúa por una rama controlada y devuelve un error estructurado → HTTP 502.
-
-4. **Datos incompletos**  
-   La ejecución finaliza correctamente, pero `requiere_revision=true`.
-
-## Ejemplo de salida correcta
-
-```json
-{
-  "formulario_id": "UIF-000123",
-  "fecha_procesamiento": "2026-09-16T14:30:00.000Z",
-  "cliente": {
-    "nombre_completo": "CLIENTE DE PRUEBA",
-    "tipo_documento": "DNI",
-    "numero_documento": "00000000",
-    "cuit_cuil": "20000000001",
-    "domicilio": "DOMICILIO ANONIMIZADO"
-  },
-  "operacion": {
-    "fecha": "2026-09-15",
-    "ticket": "3",
-    "maquina": "12000021",
-    "importe": 6277500,
-    "moneda": "ARS",
-    "medio_pago": null
-  },
-  "declaraciones": {
-    "pep": false,
-    "certificado_documentacion": false
-  },
-  "reportante": {
-    "nombre": "REPORTANTE ANONIMIZADO"
-  },
-  "control": {
-    "documento_completo": true,
-    "requiere_revision": false,
-    "motivos_revision": [],
-    "confianza_extraccion": 1
-  },
-  "archivo": {
-    "nombre_original": "formulario_uif_prueba.pdf",
-    "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-  }
-}
-```
-
-## Prueba con documento real
-
-Para la validación del checkpoint se utiliza un formulario UIF real de seis páginas.
-
-**Importante:** el PDF de prueba contiene datos personales y no debe publicarse en este repositorio. Las capturas que se incorporen en `/assets` deben anonimizar DNI, CUIT/CUIL, domicilio, teléfono, correo electrónico y cualquier otro dato identificatorio.
-
-## Capturas requeridas
-
-Agregar en `/assets`:
-
-- `01_flujo_completo.png`
-- `02_ejecucion_exitosa.png`
-- `03_rama_revision_o_error.png`
-
-Las capturas deben provenir de una ejecución real de n8n. No deben fabricarse ni contener credenciales o datos personales visibles.
-
-## Archivos de ejemplo
-
-- `/examples/request_url.json`
-- `/examples/response_ok.json`
-- `/examples/response_revision.json`
-
-## Importación
-
-1. Abrir n8n.
-2. Importar `/workflow/uif_document_ai.json`.
-3. Crear las variables `NVIDIA_API_KEY` y, opcionalmente, `NVIDIA_DOCUMENT_MODEL`.
-4. Abrir el nodo `Document AI - NVIDIA` y verificar la autorización.
-5. Ejecutar el Webhook en modo de prueba.
-6. Enviar un PDF real.
-7. Confirmar que el flujo finalice en `Responder OK` o `Responder revisión`.
-8. Guardar las capturas anonimizadas en `/assets`.
-9. Exportar nuevamente el workflow si n8n actualiza automáticamente versiones de nodos.
-
-## Criterios del checkpoint
+## Criterios de evaluación cubiertos
 
 | Criterio | Implementación |
 |---|---|
-| Funcionalidad | Webhook + archivo/URL + extracción + respuesta |
-| Mapeo | JSON final basado en el esquema del Módulo 1 |
-| Resiliencia | entrada inválida, documento corrupto, error de IA y revisión |
-| Calidad de datos | fechas, importes, documentos, nulos y SHA-256 normalizados |
+| Complejidad técnica | 2 agentes especializados + patrón Handoff + gate determinístico |
+| Robustez | Retry, timeout, circuit breaker, contratos JSON y fallback humano |
+| Seguridad | Credentials n8n, webhook autenticado, sanitización PII, sin secretos en Git |
+| Trazabilidad | UUID por ejecución + logs por agente + tokens/costo/latencia/status |
+| Operación | README + arquitectura + runbook + checklist de evidencias |
