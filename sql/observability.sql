@@ -20,3 +20,20 @@ CREATE TABLE IF NOT EXISTS uif_agent_logs (
 
 -- Los logs NO deben contener PII ni texto documental original.
 -- Recomendación: la credencial usada por el workflow debe tener solo INSERT sobre esta tabla.
+
+
+CREATE TABLE IF NOT EXISTS uif_agent_alerts (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  timestamp DATETIME(3) NOT NULL,
+  transaction_id CHAR(36) NOT NULL,
+  severity ENUM('MEDIUM','HIGH') NOT NULL,
+  status ENUM('OPEN','ACKNOWLEDGED','CLOSED') NOT NULL DEFAULT 'OPEN',
+  reason VARCHAR(512) NOT NULL,
+  latency_ms INT UNSIGNED NOT NULL DEFAULT 0,
+  estimated_cost_usd DECIMAL(12,8) NOT NULL DEFAULT 0,
+  payload_json JSON NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_uif_agent_alerts_status_time (status, timestamp),
+  KEY idx_uif_agent_alerts_transaction (transaction_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
