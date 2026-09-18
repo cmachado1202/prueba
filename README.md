@@ -93,6 +93,8 @@ La tabla `uif_agent_logs` registra:
 - decisión/error
 - metadata estructurada sin PII
 
+Las alertas quedan en `uif_agent_alerts` con estado `OPEN`, incluso si todavía no se configuró un webhook externo.
+
 DDL: `/sql/observability.sql`.
 
 > El endpoint NVIDIA NIM usado por este prototipo está publicado actualmente como **Free Endpoint**, por lo que el costo directo de API es USD 0. De todos modos, el workflow contabiliza tokens y tiene la fórmula de costo parametrizable para un endpoint/proveedor pago.
@@ -139,7 +141,7 @@ Variables de referencia: `.env.example`.
 - presupuesto máximo de referencia: USD 0.50 por ejecución;
 - umbral de confianza: 0.85;
 - fallback seguro a `HUMAN_REVIEW`;
-- alerta por fallo de agente, latencia o presupuesto;
+- alerta persistente en MySQL por fallo de agente, latencia o presupuesto; webhook externo opcional;
 - la IA nunca puede sobreescribir un faltante crítico detectado por reglas.
 
 ## Documento de pre-entrega
