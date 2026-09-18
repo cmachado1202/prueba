@@ -95,7 +95,7 @@ La tabla `uif_agent_logs` registra:
 
 DDL: `/sql/observability.sql`.
 
-> Las tarifas de tokens se dejan en 0 por defecto para no inventar precios. Antes de producción se cargan las tarifas vigentes del proveedor en el nodo `Sanitizar PII + Trace`; el cálculo ya está implementado.
+> El endpoint NVIDIA NIM usado por este prototipo está publicado actualmente como **Free Endpoint**, por lo que el costo directo de API es USD 0. De todos modos, el workflow contabiliza tokens y tiene la fórmula de costo parametrizable para un endpoint/proveedor pago.
 
 ## Seguridad
 
@@ -142,6 +142,10 @@ Variables de referencia: `.env.example`.
 - alerta por fallo de agente, latencia o presupuesto;
 - la IA nunca puede sobreescribir un faltante crítico detectado por reglas.
 
+## Documento de pre-entrega
+
+El mapeo directo contra la consigna de Coderhouse está en `/docs/pre-entrega-coderhouse.md`.
+
 ## Runbook
 
 Ver `/docs/runbook.md`.
@@ -163,6 +167,7 @@ No se suben formularios reales al repositorio.
 ├── docs/
 │   ├── architecture.md
 │   ├── evidence-checklist.md
+│   ├── pre-entrega-coderhouse.md
 │   ├── runbook.md
 │   └── security.md
 ├── prompts/
