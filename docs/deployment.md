@@ -22,9 +22,10 @@ Ejecutar:
 Verificar que existan:
 
 - `uif_agent_logs`;
-- `uif_agent_alerts`.
+- `uif_agent_alerts`;
+- `uif_processed_results`.
 
-La credencial del workflow debe usar mínimo privilegio.
+La credencial del workflow debe usar mínimo privilegio. El destino `uif_processed_results` contiene el output estructurado y requiere acceso restringido.
 
 ## 2. Crear credenciales en n8n
 
