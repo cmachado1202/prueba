@@ -37,3 +37,24 @@ CREATE TABLE IF NOT EXISTS uif_agent_alerts (
   KEY idx_uif_agent_alerts_status_time (status, timestamp),
   KEY idx_uif_agent_alerts_transaction (transaction_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- Destino operativo del output estructurado.
+-- A diferencia de uif_agent_logs/uif_agent_alerts, esta tabla puede contener PII
+-- dentro de resultado_json. Debe tener permisos restringidos y retención acorde a la política interna.
+CREATE TABLE IF NOT EXISTS uif_processed_results (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  timestamp DATETIME(3) NOT NULL,
+  transaction_id CHAR(36) NOT NULL,
+  formulario_id VARCHAR(128) NULL,
+  final_status ENUM('AUTO_CONTINUE','HUMAN_REVIEW') NOT NULL,
+  requires_human_review TINYINT(1) NOT NULL DEFAULT 0,
+  resultado_json JSON NOT NULL,
+  orchestration_json JSON NULL,
+  sha256 CHAR(64) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_uif_processed_results_transaction (transaction_id),
+  KEY idx_uif_processed_results_status_time (final_status, timestamp),
+  KEY idx_uif_processed_results_formulario (formulario_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
