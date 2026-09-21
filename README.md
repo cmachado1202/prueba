@@ -121,7 +121,7 @@ La tabla `uif_agent_logs` almacena:
 - decisión/error;
 - metadata estructurada sin PII.
 
-Las alertas se persisten en `uif_agent_alerts`.
+Las alertas se persisten en `uif_agent_alerts`. El output estructurado final se persiste además en `uif_processed_results`, que funciona como destino operativo SQL del flujo.
 
 DDL: [sql/observability.sql](sql/observability.sql).
 
@@ -205,4 +205,4 @@ No se fabrican capturas de producción ni se publican formularios reales. Para l
 | Seguridad | credenciales n8n, webhook autenticado, sanitización PII y secretos fuera de Git |
 | Trazabilidad | UUID por ejecución + logs persistentes + tokens + coste + latencia + status |
 | Documentación | README, arquitectura, guía de usuario, runbook, despliegue, QA y ROI |
-| Operación estable | workflow exportado, observabilidad, alertas, rollback y checklist de despliegue |
+| Operación estable | workflow exportado, persistencia SQL del resultado, observabilidad, alertas, rollback y checklist de despliegue |
