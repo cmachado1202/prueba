@@ -1,48 +1,49 @@
 # UIF · Automatización inteligente Production-Ready
 
-**Proyecto Coderhouse · Automatización + Document AI + Agentes de IA**
+**Proyecto Final Coderhouse · Automatización + Document AI + Orquestación de Agentes de IA**
 
-## Problema de negocio
+## Qué resuelve
 
-El proyecto automatiza el **relevamiento, extracción y control inicial de Formularios UIF provenientes de GST @CashFlow**.
+Este proyecto automatiza el **relevamiento, extracción y control inicial de Formularios UIF provenientes de GST @CashFlow**.
 
-El sistema recibe documentos, conserva su trazabilidad mediante SHA-256, extrae datos a una estructura uniforme, ejecuta controles determinísticos y utiliza dos agentes especializados para revisar calidad de datos y decidir el enrutamiento operativo.
+El flujo recibe un PDF o imagen, valida el documento, genera trazabilidad con SHA-256, extrae información estructurada, aplica controles determinísticos y utiliza dos agentes especializados para revisar la calidad de los datos y decidir el enrutamiento técnico.
 
-> **Límite funcional:** la IA no determina si una operación es sospechosa, no decide cumplimiento normativo y no reemplaza a Cumplimiento. Ante duda o baja confianza, el flujo deriva a revisión humana.
+> **Límite funcional:** la IA no determina si una operación es sospechosa, no decide cumplimiento normativo y no reemplaza a Cumplimiento. Ante faltantes, inconsistencias, baja confianza o fallos de IA, el caso se deriva a revisión humana.
 
-## Evolución por módulos
+## Entrega final
 
-- **Módulo 1:** plan de automatización, arquitectura mínima y esquema de datos.
-- **Módulo 2:** ingesta documental + Document AI + normalización + validación.
-- **Checkpoint actual:** capa multiagente, observabilidad, gestión de secretos, sanitización PII, circuit breaker, alertas y fallback.
+La guía principal para evaluar el proyecto está en:
 
-## Workflow principal
+- [ENTREGA.md](ENTREGA.md)
+- [docs/entrega-final-coderhouse.md](docs/entrega-final-coderhouse.md)
 
-`/workflow/uif_production_ready.json`
+Workflow final:
 
-El workflow anterior del Módulo 2 se conserva en:
+- [workflow/uif_production_ready.json](workflow/uif_production_ready.json)
 
-`/workflow/uif_document_ai.json`
+El workflow anterior del Módulo 2 se conserva únicamente como evolución histórica:
 
-## Arquitectura de producción
+- [workflow/uif_document_ai.json](workflow/uif_document_ai.json)
+
+## Arquitectura
 
 ```text
 GST @CashFlow
    ↓
 Webhook autenticado
    ↓
-Validación + SHA-256
+Validación de archivo + SHA-256
    ↓
 Document AI / NVIDIA
    ↓
 Normalización determinística
    ↓
-Data Sanitization
+Sanitización de PII
    ↓
 Agente A · Analista de Integridad
    ↓
-Gate / Circuit Breaker
-   ├── falla o baja confianza → HUMAN_REVIEW
+Gate de seguridad
+   ├── falla / contrato inválido / baja confianza → HUMAN_REVIEW
    ↓
 Agente B · Revisor / Enrutador
    ↓
@@ -50,134 +51,144 @@ Control determinístico final
    ├── AUTO_CONTINUE
    └── HUMAN_REVIEW
    ↓
-Logs MySQL + alertas operativas
+Observabilidad MySQL + alertas operativas
 ```
 
-Diagrama detallado: `/docs/architecture.md`.
+Diagrama y explicación: [docs/architecture.md](docs/architecture.md).
 
-## Agentes
+## Agentes y patrón de orquestación
 
 ### Agente A · Analista de Integridad
 
-Evalúa completitud e inconsistencias usando solo datos sanitizados. Produce un `quality_score`, issues y un resumen para el handoff.
+Evalúa completitud e inconsistencias sobre un payload previamente sanitizado. Devuelve un contrato estructurado con estado, `quality_score`, issues y resumen de handoff.
 
-Prompt documentado en `/prompts/agent_analyst.md`.
+Prompt versionado: [prompts/agent_analyst.md](prompts/agent_analyst.md).
 
 ### Agente B · Revisor y Enrutador
 
-Recibe el payload sanitizado + la salida del Agente A. Solo puede decidir:
+Recibe los datos sanitizados y la salida del Agente A. Solo puede resolver el **enrutamiento técnico**:
 
 - `AUTO_CONTINUE`
 - `HUMAN_REVIEW`
 
-Prompt documentado en `/prompts/agent_reviewer.md`.
+Prompt versionado: [prompts/agent_reviewer.md](prompts/agent_reviewer.md).
 
 ### Patrón
 
-Se usa **Handoff controlado**. No existe un loop reflexivo infinito: hay como máximo dos llamadas de agentes. Si el Agente A falla o no supera el gate, el Agente B no se invoca.
+Se utiliza **Handoff controlado**. Hay como máximo dos llamadas de agentes. Si el Agente A falla o no supera el gate, el Agente B no se invoca.
+
+## Robustez
+
+El diseño incluye:
+
+- autenticación del webhook;
+- validación de tipo/firma del archivo;
+- SHA-256 para trazabilidad;
+- timeouts y reintentos acotados;
+- contratos JSON estructurados;
+- gate de confianza;
+- circuit breaker por coste/estado;
+- fallback seguro a `HUMAN_REVIEW`;
+- alertas operativas;
+- precedencia de reglas determinísticas sobre decisiones de agentes.
+
+Runbook: [docs/runbook.md](docs/runbook.md).
+
+## Seguridad y protección de datos
+
+Los secretos no se almacenan en Git. El workflow final referencia credenciales de n8n.
+
+Antes de invocar la capa de agentes se eliminan datos personales como nombre, documento, CUIT/CUIL, domicilio, reportante, ticket, máquina, importe exacto y texto documental.
+
+Documentación: [docs/security.md](docs/security.md).
+
+Plantilla de variables: [.env.example](.env.example).
 
 ## Observabilidad
 
-Cada ejecución genera un UUID `transaction_id` al inicio.
+Cada ejecución genera un `transaction_id` UUID y registra telemetría persistente.
 
-La tabla `uif_agent_logs` registra:
+La tabla `uif_agent_logs` almacena:
 
-- `timestamp`
-- `transaction_id`
-- `agent_name`
-- `input_tokens`
-- `output_tokens`
-- `estimated_cost_usd`
-- `latency_ms`
-- `status`
-- decisión/error
-- metadata estructurada sin PII
+- timestamp;
+- transaction_id;
+- agent_name;
+- input_tokens;
+- output_tokens;
+- estimated_cost_usd;
+- latency_ms;
+- status;
+- decisión/error;
+- metadata estructurada sin PII.
 
-Las alertas quedan en `uif_agent_alerts` con estado `OPEN`, incluso si todavía no se configuró un webhook externo.
+Las alertas se persisten en `uif_agent_alerts`.
 
-DDL: `/sql/observability.sql`.
+DDL: [sql/observability.sql](sql/observability.sql).
 
-> El endpoint NVIDIA NIM usado por este prototipo está publicado actualmente como **Free Endpoint**, por lo que el costo directo de API es USD 0. De todos modos, el workflow contabiliza tokens y tiene la fórmula de costo parametrizable para un endpoint/proveedor pago.
+## ROI basado en telemetría
 
-## Seguridad
+El ROI no se calcula a partir de valores inventados dentro del workflow. Se obtiene con métricas reales de operación: latencia, tasa de revisión humana, éxito/fallo, tokens y coste por ejecución, combinadas con una medición del tiempo manual de referencia.
 
-### Credenciales
+Metodología, fórmulas y consultas SQL: [docs/roi.md](docs/roi.md).
 
-No hay llaves reales en Git. Crear en n8n:
+## Documentación de usuario
 
-1. **NVIDIA API** · Bearer Auth.
-2. **UIF Webhook Auth** · Header Auth.
-3. **UIF Observability MySQL** · MySQL.
+Guía de estados, interpretación de resultados y acciones operativas:
 
-El export del workflow referencia estas credenciales por nombre, pero no incluye sus secretos.
+[docs/user-guide.md](docs/user-guide.md).
 
-### Sanitización
+## Despliegue estable
 
-Antes de cualquier agente se quitan nombre, documento, CUIT/CUIL, domicilio, reportante, importe exacto, ticket, máquina y texto documental. Los logs tampoco incluyen PII.
+La versión final está preparada para importarse en n8n y operar de forma permanente con credenciales administradas fuera de Git, tablas de observabilidad, logs y fallback humano.
 
-Ver `/docs/security.md`.
+Procedimiento de despliegue, rollback y verificación: [docs/deployment.md](docs/deployment.md).
 
-## Setup
+## Pruebas y QA
 
-1. Ejecutar `/sql/observability.sql` en la base UIF.
-2. Importar `/workflow/uif_production_ready.json` en n8n.
-3. Crear/asignar las tres credenciales indicadas arriba.
-4. En `Sanitizar PII + Trace`, configurar:
-   - precio de input/output por millón de tokens;
-   - umbral de confianza si se desea modificar 0.85;
-   - URL real del canal de alertas.
-5. Publicar el workflow.
-6. Consumir el endpoint `POST /webhook/uif-ingesta` enviando el Header Auth configurado.
-7. Ejecutar prueba controlada y validar telemetría por `transaction_id`.
+Matriz de escenarios de validación:
 
-Variables de referencia: `.env.example`.
+[docs/qa-final.md](docs/qa-final.md).
 
-## Mecanismos de control
+Ejemplos sintéticos sin datos reales:
 
-- reintentos limitados en APIs;
-- timeout de Document AI y agentes;
-- contratos JSON estrictos;
-- máximo 2 llamadas de agentes;
-- presupuesto máximo de referencia: USD 0.50 por ejecución;
-- umbral de confianza: 0.85;
-- fallback seguro a `HUMAN_REVIEW`;
-- alerta persistente en MySQL por fallo de agente, latencia o presupuesto; webhook externo opcional;
-- la IA nunca puede sobreescribir un faltante crítico detectado por reglas.
-
-## Documento de pre-entrega
-
-El mapeo directo contra la consigna de Coderhouse está en `/docs/pre-entrega-coderhouse.md`.
-
-## Runbook
-
-Ver `/docs/runbook.md`.
+- [examples/request_url.json](examples/request_url.json)
+- [examples/expected_auto_continue.json](examples/expected_auto_continue.json)
+- [examples/expected_human_review.json](examples/expected_human_review.json)
 
 ## Evidencias
 
-Las capturas deben provenir de una ejecución real y anonimizada. Checklist completo:
+Se conservan capturas reales del checkpoint operativo anterior en `assets/`.
 
-`/docs/evidence-checklist.md`
-
-No se suben formularios reales al repositorio.
+No se fabrican capturas de producción ni se publican formularios reales. Para la versión multiagente, el repositorio aporta el workflow exportable, contratos, prompts, SQL de telemetría, runbook, escenarios de QA y documentación de despliegue. La guía para capturas reales de una instancia n8n está en [docs/evidence-checklist.md](docs/evidence-checklist.md).
 
 ## Estructura
 
 ```text
 .
 ├── .env.example
+├── ENTREGA.md
 ├── README.md
 ├── docs/
 │   ├── architecture.md
+│   ├── deployment.md
+│   ├── entrega-final-coderhouse.md
 │   ├── evidence-checklist.md
 │   ├── pre-entrega-coderhouse.md
+│   ├── qa-final.md
+│   ├── roi.md
 │   ├── runbook.md
-│   └── security.md
+│   ├── security.md
+│   └── user-guide.md
+├── examples/
+│   ├── expected_auto_continue.json
+│   ├── expected_human_review.json
+│   └── request_url.json
 ├── prompts/
 │   ├── agent_analyst.md
 │   └── agent_reviewer.md
 ├── schema/
-│   ├── uif_formulario.schema.json
-│   └── uif_agent_log.schema.json
+│   ├── uif_agent_log.schema.json
+│   └── uif_formulario.schema.json
 ├── sql/
 │   └── observability.sql
 └── workflow/
@@ -185,12 +196,13 @@ No se suben formularios reales al repositorio.
     └── uif_production_ready.json
 ```
 
-## Criterios de evaluación cubiertos
+## Cobertura de evaluación
 
 | Criterio | Implementación |
 |---|---|
-| Complejidad técnica | 2 agentes especializados + patrón Handoff + gate determinístico |
-| Robustez | Retry, timeout, circuit breaker, contratos JSON y fallback humano |
-| Seguridad | Credentials n8n, webhook autenticado, sanitización PII, sin secretos en Git |
-| Trazabilidad | UUID por ejecución + logs por agente + tokens/costo/latencia/status |
-| Operación | README + arquitectura + runbook + checklist de evidencias |
+| Complejidad de orquestación | 2 agentes especializados + Handoff + gate determinístico |
+| Robustez ante APIs externas | timeout, retry, contratos JSON, error capturado y fallback humano |
+| Seguridad | credenciales n8n, webhook autenticado, sanitización PII y secretos fuera de Git |
+| Trazabilidad | UUID por ejecución + logs persistentes + tokens + coste + latencia + status |
+| Documentación | README, arquitectura, guía de usuario, runbook, despliegue, QA y ROI |
+| Operación estable | workflow exportado, observabilidad, alertas, rollback y checklist de despliegue |
