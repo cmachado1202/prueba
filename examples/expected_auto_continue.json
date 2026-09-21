@@ -1,0 +1,6 @@
+{
+  "transaction_id": "00000000-0000-4000-8000-000000000001",
+  "status": "AUTO_CONTINUE",
+  "requires_human_review": false,
+  "note": "Ejemplo sintético de contrato de salida. No corresponde a una ejecución real."
+}
