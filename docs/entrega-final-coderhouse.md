@@ -18,8 +18,9 @@ Construir una versión que pueda:
 6. sanitizar PII antes de los agentes;
 7. ejecutar un análisis multiagente controlado;
 8. decidir únicamente el enrutamiento técnico;
-9. registrar telemetría y alertas;
-10. derivar a una persona cualquier caso dudoso o fallido.
+9. persistir el output estructurado en SQL;
+10. registrar telemetría y alertas;
+11. derivar a una persona cualquier caso dudoso o fallido.
 
 ## 3. Flujo end-to-end
 
@@ -37,6 +38,7 @@ Webhook autenticado
 → Agente B si corresponde
 → Control determinístico final
 → AUTO_CONTINUE / HUMAN_REVIEW
+→ Persistencia SQL del resultado
 → Logs + alertas
 ```
 
@@ -111,7 +113,7 @@ Por agente se registran:
 - decision/error_code;
 - metadata sin PII.
 
-Esto permite reconstruir qué pasó en una ejecución sin exponer el contenido sensible del formulario.
+Esto permite reconstruir qué pasó en una ejecución sin exponer el contenido sensible del formulario en los logs. El output operativo completo se guarda por separado en `uif_processed_results`, con acceso restringido.
 
 ## 8. ROI basado en telemetría
 
