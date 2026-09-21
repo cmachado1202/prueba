@@ -43,3 +43,8 @@ No se guarda cadena de pensamiento. Se guardan:
 ## Principio de mínimo privilegio
 
 La credencial MySQL del workflow debe tener únicamente permisos de `INSERT` sobre `uif_agent_logs` y, si Operaciones necesita consultar, usar otra credencial de solo lectura.
+
+
+## Persistencia operativa
+
+El resultado estructurado final se almacena en `uif_processed_results`. Esta tabla puede contener PII dentro de `resultado_json`, por lo que debe tener acceso restringido, retención definida y permisos mínimos. La separación es deliberada: `uif_agent_logs` y `uif_agent_alerts` siguen sin PII para permitir observabilidad operativa segura.
