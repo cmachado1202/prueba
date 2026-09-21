@@ -1028,6 +1028,71 @@
         2640,
         48
       ]
+    },
+    {
+      "parameters": {
+        "table": {
+          "__rl": true,
+          "value": "uif_processed_results",
+          "mode": "name",
+          "cachedResultName": "uif_processed_results"
+        },
+        "dataMode": "defineBelow",
+        "valuesToSend": {
+          "values": [
+            {
+              "column": "timestamp",
+              "value": "={{ $json.timestamp_sql }}"
+            },
+            {
+              "column": "transaction_id",
+              "value": "={{ $json.transaction_id }}"
+            },
+            {
+              "column": "formulario_id",
+              "value": "={{ $json.resultado?.formulario_id || null }}"
+            },
+            {
+              "column": "final_status",
+              "value": "={{ $json.final_status }}"
+            },
+            {
+              "column": "requires_human_review",
+              "value": "={{ $json.final_status === 'HUMAN_REVIEW' ? 1 : 0 }}"
+            },
+            {
+              "column": "resultado_json",
+              "value": "={{ JSON.stringify($json.resultado) }}"
+            },
+            {
+              "column": "orchestration_json",
+              "value": "={{ JSON.stringify($json.orchestration) }}"
+            },
+            {
+              "column": "sha256",
+              "value": "={{ $json.resultado?.archivo?.sha256 || null }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "persistir-resultado-uif-prod",
+      "name": "Persistir resultado UIF",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        2160,
+        368
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "CONFIGURAR_UIF_MYSQL",
+          "name": "UIF Observability MySQL"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notesInFlow": true,
+      "notes": "Destino operativo del resultado estructurado. Esta tabla puede contener PII y debe tener acceso restringido. Los logs de observabilidad siguen sin PII."
     }
   ],
   "pinData": {},
@@ -1333,7 +1398,7 @@
             "index": 0
           },
           {
-            "node": "¿Continuar automático?",
+            "node": "Persistir resultado UIF",
             "type": "main",
             "index": 0
           }
@@ -1396,6 +1461,17 @@
           }
         ],
         []
+      ]
+    },
+    "Persistir resultado UIF": {
+      "main": [
+        [
+          {
+            "node": "¿Continuar automático?",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },
