@@ -1,0 +1,9 @@
+{
+  "transaction_id": "00000000-0000-4000-8000-000000000002",
+  "status": "HUMAN_REVIEW",
+  "requires_human_review": true,
+  "reasons": [
+    "campo_critico_faltante"
+  ],
+  "note": "Ejemplo sintético de contrato de salida. No corresponde a una ejecución real."
+}
